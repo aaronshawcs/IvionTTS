@@ -1,0 +1,100 @@
+--[[ Lua code. See documentation: http://berserk-games.com/knowledgebase/scripting/ --]]
+
+--[[ The onLoad event is called after the game save finishes loading. --]]
+
+
+getmetatable('').__call = string.sub
+
+TYPE_MASK_ABILITY = 128
+TYPE_MASK_ATTACK = 64
+TYPE_MASK_AURA = 32
+TYPE_MASK_BUFF = 16
+TYPE_MASK_INSTANT = 8
+TYPE_MASK_PASSIVE = 4
+TYPE_MASK_TRAVEL = 2
+TYPE_MASK_ULTIMATE = 1
+
+global_decks = {}
+clone1_GUID = '5f9a27'
+global_dodo = 'dudu'
+global_cardData = {}
+function onLoad()
+  clone1 = getObjectFromGUID(clone1_GUID)
+  global_decks['z'] = 'yay'
+end
+
+--[[ The onUpdate event is called once per frame. --]]
+function onObjectEnterScriptingZone(zone, object)
+  if (object.tag == "Deck") then
+    newDeck = clone1.call("makeDeck", {object.guid, zone.guid})
+    if newDeck then
+      global_decks[newDeck[1]] = {zoneID = newDeck[2]}
+    end
+    --object.setPositionSmooth(deckZone.getPosition(), false, false)
+  end
+end
+
+function onObjectLeaveContainer(container, object)
+  if (object.tag == "Card") then
+    updateCardData(object)
+  end
+end
+
+--[[
+action, power, range:
+0..5   : 0..5,
+-1..-5 : A..E,
+N/A    : N
+Types:
+0xYZ
+Y: Ability, Attack, Aura, Buff
+Z: Instand, Passive, Travel, Ultimate
+Control:
+octal: Slow, Silence, Disarm
+--]]
+
+--TODO remove boilerplate code
+function updateCardData(card)
+  print(card.getDescription())
+  description =card.getDescription()
+  if (not global_cardData[card.getName()]) then
+
+    local action = string.byte(description, 5)
+    if 47 < action and action < 54 then
+      action = action - 48
+    elseif 64 < action and action < 70 then
+      action = 64 - action
+    elseif action == 78 then
+      action = 'N/A'
+    end
+
+    local power = string.byte(description, 6)
+    if 47 < power and power < 54 then
+      power = power - 48
+    elseif 64 < power and power < 70 then
+      power = 64 - power
+    elseif power == 78 then
+      power = 'N/A'
+    end
+
+    local range = string.byte(description, 7)
+    if 47 < range and range < 54 then
+      range = range - 48
+    elseif 64 < range and range < 70 then
+      range = 64 - range
+    elseif range == 78 then
+      range = 'N/A'
+    end
+
+    local types = description(8,9)
+
+
+    if bitlib.band(types, TYPE_MASK_ABILITY)~= 0 then
+      print("ability")
+    end
+
+    local control = description(10,10)
+
+    print(action..' '..power..' '..range..' '..types..' '..control)
+  end
+end

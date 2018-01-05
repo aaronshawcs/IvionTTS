@@ -1,0 +1,54 @@
+--has the player's deck been assigned this guid
+setup = false
+
+function onLoad(save_state)
+  deckinfo = nil
+end
+
+--args[1] = deckID
+--args[2] = zoneID
+function makeDeck (args)
+  if deckinfo then
+    return false
+  end
+  deck = getObjectFromGUID(args[1])
+  zone = getObjectFromGUID(args[2])
+  cards = deck.getObjects()
+  self.setPosition(zone.getPosition(), false, false)
+  self.setLock(false)
+  for i,v in ipairs(deck.getObjects()) do
+    deck.takeObject({position = zone.getPosition()})
+  end
+  deckinfo = {deckID = self.guid, zoneID = zone.guid}
+  return {self.guid, zone.guid}
+end
+
+function onCollisionEnter(collision_info)
+  updateCardCount()
+end
+
+--TODO add functionality for 1 card remaining
+function updateCardCount()
+  deck = getObjectFromGUID(deckinfo['deckID'])
+  cardcount = deck.getQuantity()
+  if not setup then
+    if cardcount > 45 then
+      deck.takeObject({top = false}).destruct()
+      deck.takeObject({top = false}).destruct()
+      counter = spawnObject({
+        type='3Dtext',
+        position = {zone.getPosition().x, 1.7, zone.getPosition().z},
+        rotation = {90.00, 0.00, 0.00}})
+      counter.TextTool.setValue(tostring(cardcount-2))
+      deckinfo['counter'] = counter
+      setup = true
+    end
+  else
+    if cardcount > 0 then
+      counter.TextTool.setValue(tostring(cardcount))
+    else
+      counter.TextTool.setValue("Exhausted!")
+    end
+    counter.setPosition({deck.getPosition().x, 1.7, deck.getPosition().z})
+  end
+end
