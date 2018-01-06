@@ -10,6 +10,11 @@ TYPE_MASK_PASSIVE = 4
 TYPE_MASK_TRAVEL = 2
 TYPE_MASK_ULTIMATE = 1
 
+CONTROL_MASK_SLOW = 4
+CONTROL_MASK_SILENCE = 2
+CONTROL_MASK_DISARM = 1
+
+
 global_decks = {}
 global_cardData = {}
 
@@ -84,14 +89,76 @@ function updateCardData(card)
       range = 'N/A'
     end
 
-    local types = description(8,9)
-
+    --TODO turn this into for loop.
+    local types = {ability = false,
+                  attack = false,
+                  aura = false,
+                  buff = false,
+                  instant = false,
+                  passive = false,
+                  ultimate = false}
+    local typemask = tonumber(description(8,9), 16)
+    if typemask >=TYPE_MASK_ABILITY then
+      typemask = typemask - TYPE_MASK_ABILITY
+      types.ability = true
+      print("Ability")
+    end
+    if typemask >= TYPE_MASK_ATTACK then
+      typemask = typemask - TYPE_MASK_ATTACK
+      types.attack = true
+      print("Attack")
+    end
+    if typemask >= TYPE_MASK_AURA then
+      typemask = typemask - TYPE_MASK_AURA
+      types.aura = true
+      print("Aura")
+    end
+    if typemask >= TYPE_MASK_BUFF then
+      typemask = typemask - TYPE_MASK_BUFF
+      types.buff = true
+      print("Buff")
+    end
+    if typemask >= TYPE_MASK_INSTANT then
+      typemask = typemask - TYPE_MASK_INSTANT
+      types.instant = true
+      print("Instant")
+    end
+    if typemask >= TYPE_MASK_PASSIVE then
+      typemask = typemask - TYPE_MASK_PASSIVE
+      types.passive = true
+      print("Passive")
+    end
+    if typemask >= TYPE_MASK_ULTIMATE then
+      typemask = typemask - TYPE_MASK_ULTIMATE
+      types.ultimate = true
+      print("Ultimate")
+    end
     --if bitlib.band(types, TYPE_MASK_ABILITY)~= 0 then
     --  print("ability")
     --end
 
-    local control = description(10,10)
+    print('-------')
 
-    print(action..' '..power..' '..range..' '..types..' '..control)
+    local controlmask = tonumber(description(10,10), 16)
+    local control = {slow = false, silence = false, disarm = false}
+    if controlmask >= CONTROL_MASK_SLOW then
+      controlmask = controlmask - CONTROL_MASK_SLOW
+      control.slow = true
+      print("Slow")
+    end
+    if controlmask >= CONTROL_MASK_SILENCE then
+      controlmask = controlmask - CONTROL_MASK_SILENCE
+      control.silence = true
+      print("Silence")
+    end
+    if controlmask >= CONTROL_MASK_DISARM then
+      controlmask = controlmask - CONTROL_MASK_DISARM
+      control.disarm = true
+      print("Disarm")
+    end
+
+    print('-------')
+
+    print('Action Cost: '..action..'\nPower Cost: '..power..'\nRange: '..range..' ')
   end
 end
