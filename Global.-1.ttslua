@@ -41,26 +41,25 @@ function onObjectLeaveContainer(container, object)
   end
 end
 
---[[
-action, power, range:
-0..5   : 0..5,
--1..-5 : A..E,
-N/A    : N
-Types:
-0xYZ
-Y: Ability, Attack, Aura, Buff
-Z: Instand, Passive, Travel, Ultimate
-Control:
-octal: Slow, Silence, Disarm
---]]
+-- Action, Power, Range:
+-- 0..5   : 0..5,
+-- -1..-5 : A..E,
+-- N/A    : N
+--
+-- Types:
+-- 0xYZ
+-- Y: Ability, Attack, Aura, Buff
+-- Z: Instant, Passive, Travel, Ultimate
+--
+-- Control:
+-- octal: Slow, Silence, Disarm
 
 --TODO remove boilerplate code
 --TODO create own bitwise operators
 
 function updateCardData(card)
-  print(card.getDescription())
   description =card.getDescription()
-  if (not global_cardData[card.getName()]) then
+  if (not global_cardData[card.getName()]) or (global_cardData[card.getName()].types.attack) then
 
     local action = string.byte(description, 5)
     if 47 < action and action < 54 then
@@ -97,7 +96,10 @@ function updateCardData(card)
                   instant = false,
                   passive = false,
                   ultimate = false}
+
     local typemask = tonumber(description(8,9), 16)
+    print('\n'..card.getName()..'\n-------')
+
     if typemask >=TYPE_MASK_ABILITY then
       typemask = typemask - TYPE_MASK_ABILITY
       types.ability = true
@@ -159,6 +161,12 @@ function updateCardData(card)
 
     print('-------')
 
-    print('Action Cost: '..action..'\nPower Cost: '..power..'\nRange: '..range..' ')
+    print('Action Cost: '..action..'\nPower Cost: '..power..'\nRange: '..range)
+
+    global_cardData[card.getName()] = {action = action,
+                                        power = power,
+                                        range = range,
+                                        types = types,
+                                        control = control}
   end
 end
