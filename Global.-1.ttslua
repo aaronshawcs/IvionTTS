@@ -1,4 +1,6 @@
 --[[ Lua code. See documentation: http://berserk-games.com/knowledgebase/scripting/ --]]
+-- -121.62 is max distance from table
+
 getmetatable('').__call = string.sub
 
 TYPE_MASK_ABILITY = 128
@@ -135,9 +137,6 @@ function updateCardData(card)
       types.ultimate = true
       print("Ultimate")
     end
-    --if bitlib.band(types, TYPE_MASK_ABILITY)~= 0 then
-    --  print("ability")
-    --end
 
     print('-------')
 
@@ -161,12 +160,13 @@ function updateCardData(card)
 
     print('-------')
 
-    print('Action Cost: '..action..'\nPower Cost: '..power..'\nRange: '..range)
 
     global_cardData[card.getName()] = {action = action,
                                         power = power,
                                         range = range,
                                         types = types,
                                         control = control}
+    print('Action Cost: '..global_cardData[card.getName()].action..'\nPower Cost: '..global_cardData[card.getName()].power..'\nRange: '..global_cardData[card.getName()].range)
+
   end
 end

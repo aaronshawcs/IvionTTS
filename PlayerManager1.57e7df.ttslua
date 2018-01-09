@@ -1,0 +1,19 @@
+g_action_guid = '769c5b'
+g_power_guid = '0182e4'
+g_slow_guid = '6602a1'
+g_silence_guid = '360332'
+g_disarm_guid = '6141ea'
+g_HP1_guid = 'a91435'
+g_HP2_guid = '16a6a2'
+
+function onLoad()
+  action = getObjectFromGUID(g_actions_guid)
+  power = getObjectFromGUID(g_power_guid)
+  slow = getObjectFromGUID(g_slow_guid)
+  silence = getObjectFromGUID(g_silence_guid)
+  disarm = getObjectFromGUID(g_disarm_guid)
+  HP1 = getObjectFromGUID(g_HP1_guid)
+  HP2 = getObjectFromGUID(g_HP2_guid)
+  print(';load')
+  action.roll()
+end
