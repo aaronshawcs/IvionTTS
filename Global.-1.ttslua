@@ -21,7 +21,7 @@ global_cardData = {}
 
 function onObjectLeaveContainer(container, object)
   if (object.tag == "Card") then
-    if not(object.getDescription()) then
+    if not(object.getDescription() == '') then
       updateCardData(object)
     end
   end
@@ -44,7 +44,7 @@ end
 
 function updateCardData(card)
   description =card.getDescription()
-  if (not global_cardData[card.getName()]) or (global_cardData[card.getName()].types.attack) then
+  if (not global_cardData[card.getName()]) then
 
     local action = string.byte(description, 1)
     if 47 < action and action < 54 then
@@ -52,7 +52,7 @@ function updateCardData(card)
     elseif 64 < action and action < 70 then
       action = 64 - action
     elseif action == 78 then
-      action = 'N/A'
+      --action = 'N/A'
     end
 
     local power = string.byte(description, 2)
@@ -61,7 +61,7 @@ function updateCardData(card)
     elseif 64 < power and power < 70 then
       power = 64 - power
     elseif power == 78 then
-      power = 'N/A'
+      --power = 'N/A'
     end
 
     local range = string.byte(description, 3)
@@ -70,7 +70,7 @@ function updateCardData(card)
     elseif 64 < range and range < 70 then
       range = 64 - range
     elseif range == 78 then
-      range = 'N/A'
+      --range = 'N/A'
     end
 
     --TODO turn this into for loop.
@@ -83,65 +83,65 @@ function updateCardData(card)
                   ultimate = false}
 
     local typemask = tonumber(description(4,5), 16)
-    print('\n'..card.getName()..'\n-------')
+    --print('\n'..card.getName()..'\n-------')
 
     if typemask >=TYPE_MASK_ABILITY then
       typemask = typemask - TYPE_MASK_ABILITY
       types.ability = true
-      print("Ability")
+      --print("Ability")
     end
     if typemask >= TYPE_MASK_ATTACK then
       typemask = typemask - TYPE_MASK_ATTACK
       types.attack = true
-      print("Attack")
+      --print("Attack")
     end
     if typemask >= TYPE_MASK_AURA then
       typemask = typemask - TYPE_MASK_AURA
       types.aura = true
-      print("Aura")
+      --print("Aura")
     end
     if typemask >= TYPE_MASK_BUFF then
       typemask = typemask - TYPE_MASK_BUFF
       types.buff = true
-      print("Buff")
+    --print("Buff")
     end
     if typemask >= TYPE_MASK_INSTANT then
       typemask = typemask - TYPE_MASK_INSTANT
       types.instant = true
-      print("Instant")
+      --print("Instant")
     end
     if typemask >= TYPE_MASK_PASSIVE then
       typemask = typemask - TYPE_MASK_PASSIVE
       types.passive = true
-      print("Passive")
+      --print("Passive")
     end
     if typemask >= TYPE_MASK_ULTIMATE then
       typemask = typemask - TYPE_MASK_ULTIMATE
       types.ultimate = true
-      print("Ultimate")
+      --print("Ultimate")
     end
 
-    print('-------')
+    --print('-------')
 
     local controlmask = tonumber(description(6,6), 16)
     local control = {slow = false, silence = false, disarm = false}
     if controlmask >= CONTROL_MASK_SLOW then
       controlmask = controlmask - CONTROL_MASK_SLOW
       control.slow = true
-      print("Slow")
+      --print("Slow")
     end
     if controlmask >= CONTROL_MASK_SILENCE then
       controlmask = controlmask - CONTROL_MASK_SILENCE
       control.silence = true
-      print("Silence")
+      --print("Silence")
     end
     if controlmask >= CONTROL_MASK_DISARM then
       controlmask = controlmask - CONTROL_MASK_DISARM
       control.disarm = true
-      print("Disarm")
+      --print("Disarm")
     end
 
-    print('-------')
+    --print('-------')
 
 
     global_cardData[card.getName()] = {action = action,
@@ -149,7 +149,7 @@ function updateCardData(card)
                                         range = range,
                                         types = types,
                                         control = control}
-    print('Action Cost: '..global_cardData[card.getName()].action..'\nPower Cost: '..global_cardData[card.getName()].power..'\nRange: '..global_cardData[card.getName()].range)
+    --print('Action Cost: '..global_cardData[card.getName()].action..'\nPower Cost: '..global_cardData[card.getName()].power..'\nRange: '..global_cardData[card.getName()].range)
 
   end
 end

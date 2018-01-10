@@ -1,12 +1,23 @@
 --this zone tracks the cards in Red's hand
-function onLoad(save_state)
-  cardsInHand = {}
-end
+cardsInHand = {}
 
 function onObjectEnterScriptingZone(zone, object)
   if zone == self then
-    if (object.tag == 'Card') then
+    if (object) and (object.tag=="Card") then
       table.insert(cardsInHand, object)
+    end
+  end
+end
+
+function onObjectLeaveScriptingZone(zone, object)
+  if zone == self then
+    if (object) and (object.tag == 'Card') then
+      for i, v in ipairs(cardsInHand) do
+        if  object == v then
+          table.remove(cardsInHand, i)
+          break
+        end
+      end
     end
   end
 end
