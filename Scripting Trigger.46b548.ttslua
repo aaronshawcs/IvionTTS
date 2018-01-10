@@ -1,0 +1,17 @@
+
+--args[1] = deckID
+--args[2] = zoneID
+
+deckBuilder_GUID = '5f9a27'
+
+function onLoad(save_state)
+  deckBuilder = getObjectFromGUID(deckBuilder_GUID)
+end
+
+function onObjectEnterScriptingZone(zone, object)
+  if zone == self then
+      if (object.tag == "Deck") then
+        deckBuilder.call("makeDeck", {object.guid, zone.guid})
+      end
+  end
+end

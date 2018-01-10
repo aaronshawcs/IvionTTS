@@ -20,7 +20,7 @@ function makeDeck (args)
     deck.takeObject({position = zone.getPosition()})
   end
   deckinfo = {deckID = self.guid, zoneID = zone.guid}
-  return {self.guid, zone.guid}
+  return self.guid
 end
 
 function onCollisionEnter(collision_info)
@@ -42,6 +42,7 @@ function updateCardCount()
       counter.TextTool.setValue(tostring(cardcount-2))
       deckinfo['counter'] = counter
       setup = true
+      zone.destruct()
     end
   else
     if cardcount > 0 then

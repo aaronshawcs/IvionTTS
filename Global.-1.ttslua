@@ -16,33 +16,16 @@ CONTROL_MASK_SLOW = 4
 CONTROL_MASK_SILENCE = 2
 CONTROL_MASK_DISARM = 1
 
-
-global_decks = {}
 global_cardData = {}
 
-clone1_GUID = '5f9a27'
-
---[[ The onLoad event is called after the game save finishes loading. --]]
-function onLoad()
-  clone1 = getObjectFromGUID(clone1_GUID)
-end
-
---[[ The onObjectEnterScriptingZone function is called whenever any object enters any scripting zone. --]]
-function onObjectEnterScriptingZone(zone, object)
-  if (object.tag == "Deck") then
-    newDeck = clone1.call("makeDeck", {object.guid, zone.guid})
-    if newDeck then
-      global_decks[newDeck[1]] = {zoneID = newDeck[2]}
-    end
-  end
-end
 
 function onObjectLeaveContainer(container, object)
   if (object.tag == "Card") then
-    updateCardData(object)
+    if not(object.getDescription()) then
+      updateCardData(object)
+    end
   end
 end
-
 -- Action, Power, Range:
 -- 0..5   : 0..5,
 -- -1..-5 : A..E,
@@ -63,7 +46,7 @@ function updateCardData(card)
   description =card.getDescription()
   if (not global_cardData[card.getName()]) or (global_cardData[card.getName()].types.attack) then
 
-    local action = string.byte(description, 5)
+    local action = string.byte(description, 1)
     if 47 < action and action < 54 then
       action = action - 48
     elseif 64 < action and action < 70 then
@@ -72,7 +55,7 @@ function updateCardData(card)
       action = 'N/A'
     end
 
-    local power = string.byte(description, 6)
+    local power = string.byte(description, 2)
     if 47 < power and power < 54 then
       power = power - 48
     elseif 64 < power and power < 70 then
@@ -81,7 +64,7 @@ function updateCardData(card)
       power = 'N/A'
     end
 
-    local range = string.byte(description, 7)
+    local range = string.byte(description, 3)
     if 47 < range and range < 54 then
       range = range - 48
     elseif 64 < range and range < 70 then
@@ -99,7 +82,7 @@ function updateCardData(card)
                   passive = false,
                   ultimate = false}
 
-    local typemask = tonumber(description(8,9), 16)
+    local typemask = tonumber(description(4,5), 16)
     print('\n'..card.getName()..'\n-------')
 
     if typemask >=TYPE_MASK_ABILITY then
@@ -140,7 +123,7 @@ function updateCardData(card)
 
     print('-------')
 
-    local controlmask = tonumber(description(10,10), 16)
+    local controlmask = tonumber(description(6,6), 16)
     local control = {slow = false, silence = false, disarm = false}
     if controlmask >= CONTROL_MASK_SLOW then
       controlmask = controlmask - CONTROL_MASK_SLOW
