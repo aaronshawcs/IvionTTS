@@ -1,0 +1,173 @@
+--[[ Lua code. See documentation: http://berserk-games.com/knowledgebase/scripting/ --]]
+-- -121.62 is max distance from table
+
+getmetatable('').__call = string.sub
+
+TYPE_MASK_ABILITY = 128
+TYPE_MASK_ATTACK = 64
+TYPE_MASK_AURA = 32
+TYPE_MASK_BUFF = 16
+TYPE_MASK_INSTANT = 8
+TYPE_MASK_PASSIVE = 4
+TYPE_MASK_TRAVEL = 2
+TYPE_MASK_ULTIMATE = 1
+
+CONTROL_MASK_SLOW = 4
+CONTROL_MASK_SILENCE = 2
+CONTROL_MASK_DISARM = 1
+
+cardData = {}
+playerAttributes = {red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0}, blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0}}
+--{action = '2', power = 0, slow = 0, silence = 0, disarm = 0}
+function onObjectLeaveContainer(container, object)
+  if (object.tag == "Card") then
+    if not(object.getDescription() == '') then
+      updateCardData(object)
+    end
+  end
+end
+
+-- Action, Power, Range:
+-- 0..5   : 0..5,
+-- -1..-5 : A..E,
+-- N/A    : N
+--
+-- Types:
+-- 0xYZ
+-- Y: Ability, Attack, Aura, Buff
+-- Z: Instant, Passive, Travel, Ultimate
+--
+-- Control:
+-- octal: Slow, Silence, Disarm
+
+--TODO remove boilerplate code
+--TODO create own bitwise operators
+
+
+
+function setAttribute (attribute_info)
+  -- attribute_info table:
+  --  color     string
+  --  attribute string
+  --  value     int
+  playerAttributes[attribute_info.color][attribute_info.attribute] = attribute_info.value
+  --print(playerAttributes[attribute_info.color][attribute_info.attribute])
+end
+
+
+function getCardInfo(card)
+  --print('bo')
+  return cardData[card.name]
+end
+
+function updateCardData(card)
+  description =card.getDescription()
+  if (not cardData[card.getName()]) then
+
+    local action = string.byte(description, 1)
+    if 47 < action and action < 54 then
+      action = action - 48
+    elseif 64 < action and action < 70 then
+      action = 64 - action
+    elseif action == 78 then
+      --action = 'N/A'
+    end
+
+    local power = string.byte(description, 2)
+    if 47 < power and power < 54 then
+      power = power - 48
+    elseif 64 < power and power < 70 then
+      power = 64 - power
+    elseif power == 78 then
+      --power = 'N/A'
+    end
+
+    local range = string.byte(description, 3)
+    if 47 < range and range < 54 then
+      range = range - 48
+    elseif 64 < range and range < 70 then
+      range = 64 - range
+    elseif range == 78 then
+      --range = 'N/A'
+    end
+
+    --TODO turn this into for loop.
+    local types = {ability = false,
+                  attack = false,
+                  aura = false,
+                  buff = false,
+                  instant = false,
+                  passive = false,
+                  ultimate = false}
+
+    local typemask = tonumber(description(4,5), 16)
+    --print('\n'..card.getName()..'\n-------')
+
+    if typemask >=TYPE_MASK_ABILITY then
+      typemask = typemask - TYPE_MASK_ABILITY
+      types.ability = true
+      --print("Ability")
+    end
+    if typemask >= TYPE_MASK_ATTACK then
+      typemask = typemask - TYPE_MASK_ATTACK
+      types.attack = true
+      --print("Attack")
+    end
+    if typemask >= TYPE_MASK_AURA then
+      typemask = typemask - TYPE_MASK_AURA
+      types.aura = true
+      --print("Aura")
+    end
+    if typemask >= TYPE_MASK_BUFF then
+      typemask = typemask - TYPE_MASK_BUFF
+      types.buff = true
+    --print("Buff")
+    end
+    if typemask >= TYPE_MASK_INSTANT then
+      typemask = typemask - TYPE_MASK_INSTANT
+      types.instant = true
+      --print("Instant")
+    end
+    if typemask >= TYPE_MASK_PASSIVE then
+      typemask = typemask - TYPE_MASK_PASSIVE
+      types.passive = true
+      --print("Passive")
+    end
+    if typemask >= TYPE_MASK_ULTIMATE then
+      typemask = typemask - TYPE_MASK_ULTIMATE
+      types.ultimate = true
+      --print("Ultimate")
+    end
+
+    --print('-------')
+
+    local controlmask = tonumber(description(6,6), 16)
+    local control = {slow = false, silence = false, disarm = false}
+    if controlmask >= CONTROL_MASK_SLOW then
+      controlmask = controlmask - CONTROL_MASK_SLOW
+      control.slow = true
+      --print("Slow")
+    end
+    if controlmask >= CONTROL_MASK_SILENCE then
+      controlmask = controlmask - CONTROL_MASK_SILENCE
+      control.silence = true
+      --print("Silence")
+    end
+    if controlmask >= CONTROL_MASK_DISARM then
+      controlmask = controlmask - CONTROL_MASK_DISARM
+      control.disarm = true
+      --print("Disarm")
+    end
+
+    --print('-------')
+
+
+    cardData[card.getName()] = {action = action,
+                                        power = power,
+                                        range = range,
+                                        types = types,
+                                        control = control}
+    --print('Action Cost: '..cardData[card.getName()].action..'\nPower Cost: '..cardData[card.getName()].power..'\nRange: '..cardData[card.getName()].range)
+
+  end
+end

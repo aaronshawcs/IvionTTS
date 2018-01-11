@@ -1,0 +1,12 @@
+gameManager_GUID = 'ae7b3c'
+function onLoad(save_state)
+  gameManager = getObjectFromGUID(gameManager_GUID)
+end
+
+function onCollisionEnter(collision_info)
+  -- collision_info table:
+  --   collision_object    Object
+  --   contact_points      Table     {Vector, ...}
+  --   relative_velocity   Vector
+  gameManager.call("setAttribute", {color = 'red', attribute = 'silence', value = self.getValue()})
+end

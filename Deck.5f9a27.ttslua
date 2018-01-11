@@ -27,6 +27,11 @@ function onCollisionEnter(collision_info)
   updateCardCount()
 end
 
+
+  function foo(table)
+    print('bar')
+  end
+
 --TODO add functionality for 1 card remaining
 function updateCardCount()
   deck = getObjectFromGUID(deckinfo['deckID'])
