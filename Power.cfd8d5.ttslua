@@ -8,5 +8,7 @@ function onCollisionEnter(collision_info)
   --   collision_object    Object
   --   contact_points      Table     {Vector, ...}
   --   relative_velocity   Vector
-  gameManager.call("setAttribute", {color = 'red', attribute = 'disarm', value = self.getValue()})
+  if(gameManager) then
+    getObjectFromGUID(gameManager_GUID).call("setAttribute", {color = 'red', attribute = 'power', value = self.getValue()})
+  end
 end

@@ -51,7 +51,8 @@ function setAttribute (attribute_info)
   --  attribute string
   --  value     int
   playerAttributes[attribute_info.color][attribute_info.attribute] = attribute_info.value
-  --print(playerAttributes[attribute_info.color][attribute_info.attribute])
+  --print(tostring(1>2))
+  print(attribute_info.attribute..': '..playerAttributes[attribute_info.color][attribute_info.attribute])
 end
 
 
