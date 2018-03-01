@@ -17,8 +17,81 @@ CONTROL_MASK_SILENCE = 2
 CONTROL_MASK_DISARM = 1
 
 cardData = {}
-playerAttributes = {red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0}, blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0}}
---{action = '2', power = 0, slow = 0, silence = 0, disarm = 0}
+playerAttributes = {Red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'acb721'},
+                    Blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'f4df35'}}
+
+redAction_GUID = '671922'
+redPower_GUID = 'cfd8d5'
+blueAction_GUID = 'd51b94'
+bluePower_GUID = 'e32e8b'
+
+Stack = {}
+-- Stack Table
+-- Uses a table as stack, use <table>:push(value) and <table>:pop()
+-- Lua 5.1 compatible
+-- Create a Table with stack functions
+function Stack:Create()
+  -- stack table
+  local t = {}
+  -- entry table
+  t._et = {}
+
+  function t:push(...)
+    if ... then
+      local targs = {...}
+      for _,v in ipairs(targs) do
+        table.insert(self._et, v)
+      end
+    end
+  end
+
+  function t:pop(num)
+    local num = num or 1
+    local entries = {}
+    for i = 1, num do
+      if #self._et ~= 0 then
+        table.insert(entries, self._et[#self._et])
+        table.remove(self._et)
+      else
+        break
+      end
+    end
+    return unpack(entries)
+  end
+
+  function t:top()
+    local entries = {}
+    if #self._et ~= 0 then
+      table.insert(entries, self._et[#self._et])
+    end
+
+    return unpack(entries)
+  end
+
+  function t:list()
+    for i,v in pairs(self._et) do
+      print(i, v)
+    end
+  end
+
+
+  function t:getEntries()
+    return self._et
+  end
+
+  return t
+end
+-- CHILLCODE™
+
+function onLoad(save_state)
+  stack = Stack:Create()
+  stackSize = 0.00
+  redAction = getObjectFromGUID(redAction_GUID)
+  redPower = getObjectFromGUID(redPower_GUID)
+  blueAction = getObjectFromGUID(blueAction_GUID)
+  bluePower = getObjectFromGUID(bluePower_GUID)
+end
+
 function onObjectLeaveContainer(container, object)
   if (object.tag == "Card") then
     if not(object.getDescription() == '') then
@@ -26,6 +99,34 @@ function onObjectLeaveContainer(container, object)
     end
   end
 end
+
+function setAttribute (attribute_info)
+  -- attribute_info table:
+  --  color     string
+  --  attribute string
+  --  value     int
+  color = attribute_info.color
+  attribute = attribute_info.attribute
+  value = attribute_info.value
+
+  if value == 6 then
+     value = 0
+  end
+
+  previousValue = playerAttributes[color][attribute]
+  playerAttributes[color][attribute] = value
+
+  if not (value > 0 and previousValue > 0 and (attribute == 'slow' or attribute == 'silence' or attribute == 'disarm')) then
+    getObjectFromGUID(playerAttributes[color]['hand_GUID']).call('updatePlayableCards', (playerAttributes[color]))
+  end
+end
+
+function getAttributes (player)
+-- player table:
+-- color    string
+  return playerAttributes[player.color]
+end
+
 
 -- Action, Power, Range:
 -- 0..5   : 0..5,
@@ -40,29 +141,8 @@ end
 -- Control:
 -- octal: Slow, Silence, Disarm
 
---TODO remove boilerplate code
---TODO create own bitwise operators
-
-
-
-function setAttribute (attribute_info)
-  -- attribute_info table:
-  --  color     string
-  --  attribute string
-  --  value     int
-  playerAttributes[attribute_info.color][attribute_info.attribute] = attribute_info.value
-  --print(tostring(1>2))
-  print(attribute_info.attribute..': '..playerAttributes[attribute_info.color][attribute_info.attribute])
-end
-
-
-function getCardInfo(card)
-  --print('bo')
-  return cardData[card.name]
-end
-
 function updateCardData(card)
-  description =card.getDescription()
+  description = card.getDescription()
   if (not cardData[card.getName()]) then
 
     local action = string.byte(description, 1)
@@ -93,82 +173,254 @@ function updateCardData(card)
     end
 
     --TODO turn this into for loop.
-    local types = {ability = false,
-                  attack = false,
-                  aura = false,
-                  buff = false,
-                  instant = false,
-                  passive = false,
-                  ultimate = false}
-
+    local types = {
+      ability = false,
+      attack = false,
+      aura = false,
+      buff = false,
+      instant = false,
+      passive = false,
+      travel = false,
+      ultimate = false
+    }
     local typemask = tonumber(description(4,5), 16)
-    --print('\n'..card.getName()..'\n-------')
-
     if typemask >=TYPE_MASK_ABILITY then
       typemask = typemask - TYPE_MASK_ABILITY
       types.ability = true
-      --print("Ability")
     end
     if typemask >= TYPE_MASK_ATTACK then
       typemask = typemask - TYPE_MASK_ATTACK
       types.attack = true
-      --print("Attack")
     end
     if typemask >= TYPE_MASK_AURA then
       typemask = typemask - TYPE_MASK_AURA
       types.aura = true
-      --print("Aura")
     end
     if typemask >= TYPE_MASK_BUFF then
       typemask = typemask - TYPE_MASK_BUFF
       types.buff = true
-    --print("Buff")
     end
     if typemask >= TYPE_MASK_INSTANT then
       typemask = typemask - TYPE_MASK_INSTANT
       types.instant = true
-      --print("Instant")
     end
     if typemask >= TYPE_MASK_PASSIVE then
       typemask = typemask - TYPE_MASK_PASSIVE
       types.passive = true
-      --print("Passive")
     end
     if typemask >= TYPE_MASK_ULTIMATE then
       typemask = typemask - TYPE_MASK_ULTIMATE
       types.ultimate = true
-      --print("Ultimate")
     end
 
-    --print('-------')
-
     local controlmask = tonumber(description(6,6), 16)
+
     local control = {slow = false, silence = false, disarm = false}
+
     if controlmask >= CONTROL_MASK_SLOW then
       controlmask = controlmask - CONTROL_MASK_SLOW
       control.slow = true
-      --print("Slow")
     end
     if controlmask >= CONTROL_MASK_SILENCE then
       controlmask = controlmask - CONTROL_MASK_SILENCE
       control.silence = true
-      --print("Silence")
     end
     if controlmask >= CONTROL_MASK_DISARM then
       controlmask = controlmask - CONTROL_MASK_DISARM
       control.disarm = true
-      --print("Disarm")
     end
 
-    --print('-------')
-
-
     cardData[card.getName()] = {action = action,
-                                        power = power,
-                                        range = range,
-                                        types = types,
-                                        control = control}
-    --print('Action Cost: '..cardData[card.getName()].action..'\nPower Cost: '..cardData[card.getName()].power..'\nRange: '..cardData[card.getName()].range)
+                                power = power,
+                                range = range,
+                                types = types,
+                                control = control}
+  end
 
+  function getCardStats(card)
+    return cardData[card.name]
+  end
+
+  function checkIfPlayable(play_info)
+    -- play_info table:
+    -- name         string
+    -- attributes   table:
+    --              [ATTRIBUTENAME]  int
+    --playability table:
+    --playable      bool
+    --attributes    table:
+    --              [ATTRIBUTENAME]  bool
+    playability = {playable = false, restricted = {action = false, power = false, slow = false, silence = false, disarm = false}}
+    name = play_info.name
+    card_stats = getCardStats({name = name})
+    attributes = play_info.attributes
+
+    if (attributes.action + card_stats.action < 0 ) then
+      playability.restricted['action'] = true
+    end
+    if (attributes.power + card_stats.power < 0 ) then
+      playability.restricted['power'] = true
+    end
+
+    for control_type, affected in pairs(card_stats.control) do
+        if (attributes[control_type] > 0 and affected) then
+          playability.restricted[control_type] = true
+        end
+    end
+    playability.playable = not (playability.restricted.action or
+                              playability.restricted.power or
+                              playability.restricted.slow or
+                              playability.restricted.silence or
+                              playability.restricted.disarm)
+    return playability
+  end
+
+  function playCard (card_info)
+    -- card_info table:
+    -- player_color   string
+    -- card           object
+    card = card_info.card
+    player_color = card_info.player_color
+    name = card.getName()
+    print(player_color .. ' played ' .. name)
+    attributes = getAttributes({color = player_color})
+    if player_color == 'Red' then
+      actionDie = redAction
+      powerDie = redPower
+    else
+      actionDie = blueAction
+      powerDie = bluePower
+    end
+
+    playability = checkIfPlayable({name = name, attributes = attributes})
+    card_stats = getCardStats({name = name})
+
+    actionDif = attributes.action + card_stats.action
+    powerDif = attributes.power + card_stats.power
+
+    if playability.playable then
+      if (card_stats.action < 0) then
+        if (actionDif > 0) then
+          actionDie.setValue(actionDie.getValue() + card_stats.action)
+        elseif (actionDif == 0) then
+          actionDie.setValue(6)
+        end
+      end
+      if (card_stats.power < 0) then
+        if (powerDif > 0) then
+          powerDie.setValue(powerDie.getValue() + card_stats.power)
+        elseif (powerDif == 0) then
+          powerDie.setValue(6)
+        end
+      end
+
+      for i,v in pairs(stack:getEntries()) do
+        v.card.setPositionSmooth({v.card.getPosition().x - 1.25, 5.00, 0.00}, false, false)
+        --v.card.flip()
+      end
+
+      card.setPositionSmooth({(stackSize * 1.25), 5.00, 0.00}, false, false)
+      if stack:top() then
+        stack:top().card.highlightOff()
+      end
+      stack:push({card = card, player_color = player_color})
+      stack:top().card.highlightOn({1,1,0})
+      stack:top().card.setLock(true)
+      stackSize = stackSize + 1.00
+      --card.setPositionSmooth({, 5.00, 0.00}, false, false)
+    else
+      if playability.restricted.action  then
+        printToColor(name.." can't be played: not enough"..'[ed7905] actions [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.power  then
+          printToColor(name.." can't be played: not enough"..'[35bdcd] power [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.slow  then
+          printToColor(name.." can't be played: affected by"..'[49ac2d] slow [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.silence  then
+          printToColor(name.." can't be played: affected by"..'[248eab] silence [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.disarm  then
+          printToColor(name.." can't be played: affected by"..'[db2325] disarm [-]', player_color, {r=1,g=1,b=1})
+      end
+    end
+  end
+
+  function resolveCard()
+    stack_entry = stack:pop()
+    if (stack_entry ~= nil) then
+      card = stack_entry.card
+      player_color = stack_entry.player_color
+      attributes = getAttributes({color = player_color})
+      name = card.getName()
+      print(player_color .. ' resolved ' .. name)
+      if player_color == 'Red' then
+        discardZone = {9, 1.5, -12.2}
+        actionDie = redAction
+        powerDie = redPower
+      else
+        discardZone = {-9, 1.5, 12.2}
+        actionDie = blueAction
+        powerDie = bluePower
+      end
+      playability = checkIfPlayable({name = name, attributes = attributes})
+      card_stats = getCardStats({name = name})
+
+      if (playability.restricted.slow or playability.restricted.silence or playability.restricted.disarm) then
+        if playability.restricted.slow  then
+            printToColor(name.." metacountered: affected by"..'[49ac2d] slow [-]', player_color, {r=1,g=1,b=1})
+        end
+        if playability.restricted.silence  then
+            printToColor(name.." metacountered: affected by"..'[248eab] silence [-]', player_color, {r=1,g=1,b=1})
+        end
+        if playability.restricted.disarm  then
+            printToColor(name.." metacountered: affected by"..'[db2325] disarm [-]', player_color, {r=1,g=1,b=1})
+        end
+        actionDif = attributes.action - card_stats.action
+        powerDif = attributes.power - card_stats.power
+        if (card_stats.action < 0) then
+          if (actionDif <= 5) then
+            actionDie.setValue(actionDif)
+          else
+            actionDie.setValue(5)
+          end
+        end
+        if (card_stats.power < 0) then
+          if (powerDif <= 5) then
+            powerDie.setValue(powerDif)
+          else
+            powerDie.setValue(5)
+          end
+        end
+      else
+        actionDif = attributes.action + card_stats.action
+        powerDif = attributes.power + card_stats.power
+        if (card_stats.action > 0) then
+          if (actionDif <= 5) then
+            actionDie.setValue(actionDif)
+          else
+            actionDie.setValue(5)
+          end
+        end
+        if (card_stats.power > 0) then
+          if (powerDif <= 5) then
+            powerDie.setValue(powerDif)
+          else
+            powerDie.setValue(5)
+          end
+        end
+      end
+      card.highlightOff()
+      card.setLock(false)
+      card.setPositionSmooth(discardZone, false, false)
+      for i,v in pairs(stack:getEntries()) do
+        v.card.setPositionSmooth({v.card.getPosition().x + 1.25, 5.00, 0.00}, false, false)
+      end
+      if(stack:top()) then
+        stack:top().card.highlightOn({1,1,0})
+      end
+      stackSize = stackSize - 1.00
+    end
   end
 end

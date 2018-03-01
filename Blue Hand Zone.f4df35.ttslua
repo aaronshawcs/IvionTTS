@@ -1,4 +1,4 @@
---this zone tracks the cards in Red's hand
+--this zone tracks the cards in Blue's hand
 
 --{-0.01, 3.40, -26.01}
 --{0.00, 0.00, 6.00}
@@ -26,9 +26,9 @@ function onObjectEnterScriptingZone(zone, object)
   if zone == self then
     if (object) and (object.tag=="Card") then
       name = object.getName()
-      card_stats = gameManager.call("getCardStats", {name = name})
-      card_stats.obj_guid = object.getGUID()
-      cardsInHand[name] = card_stats
+      card_info = gameManager.call("getCardStats", {name = name})
+      card_info.obj_guid = object.getGUID()
+      cardsInHand[name] = card_info
       if (gameManager.call('checkIfPlayable', {name = name, attributes = att_cache})).playable then
         object.highlightOn({r = 0.15, g = 1, b = 0.3})
       else

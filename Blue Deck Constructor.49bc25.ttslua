@@ -1,10 +1,7 @@
-
---args[1] = deckID
---args[2] = zoneID
-
+--Scripting Trigger for making and assigning Blue Deck
 reservedDeck = nil
-deckBuilder_GUID = '5f9a27'
-placeDeckHereText_GUID = "544680"
+deckBuilder_GUID = 'fa7170'
+placeDeckHereText_GUID = "4357db"
 function onLoad(save_state)
   deckBuilder = getObjectFromGUID(deckBuilder_GUID)
   placeDeckHereText = getObjectFromGUID(placeDeckHereText_GUID)
@@ -17,30 +14,21 @@ function onLoad(save_state)
   button_parameters.font_size = 60
   button_parameters.width = 500
   button_parameters.height = 50
-  --button_parameters.font_color = {1,1,1}
   button_parameters.scale = {1.00, 1.00, 1.00}
   self.createButton(button_parameters)
-  --[[local params = {}
-  params.click_function = 'printHello'
-  params.function_owner = self
-  params.label = 'Hello!'
-  self.createButton(params)]]
 end
 
 function onObjectEnterScriptingZone(zone, object)
   if zone == self then
       if (object.tag == "Deck") then
         reservedDeck = object
-        --deckBuilder.call("makeDeck", {object.guid, zone.guid})
       end
   end
 end
 
-
 function onObjectLeaveScriptingZone(zone, object)
   if zone == self then
       if (object.tag == "Deck") then
-        --deckBuilder.call("makeDeck", {object.guid, zone.guid})
       end
   end
 end

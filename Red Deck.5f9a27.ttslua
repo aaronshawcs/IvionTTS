@@ -1,7 +1,12 @@
 --has the player's deck been assigned this guid
 setup = false
+gameManager_GUID = 'ae7b3c'
+redAction_GUID = '671922'
+
 
 function onLoad(save_state)
+  gameManager = getObjectFromGUID(gameManager_GUID)
+  redAction = getObjectFromGUID(redAction_GUID)
   deckinfo = nil
 end
 
@@ -15,6 +20,7 @@ function makeDeck (args)
   zone = getObjectFromGUID(args[2])
   cards = deck.getObjects()
   self.setPosition(zone.getPosition(), false, false)
+  self.setRotation(deck.getRotation())
   self.setLock(false)
   for i,v in ipairs(deck.getObjects()) do
     deck.takeObject({position = zone.getPosition()})
@@ -26,11 +32,6 @@ end
 function onCollisionEnter(collision_info)
   updateCardCount()
 end
-
-
-  function foo(table)
-    print('bar')
-  end
 
 --TODO add functionality for 1 card remaining
 function updateCardCount()
@@ -55,6 +56,19 @@ function updateCardCount()
     else
       counter.TextTool.setValue("Exhausted!")
     end
-    counter.setPosition({deck.getPosition().x, 1.7, deck.getPosition().z})
+    counter.setPosition({deck.getPosition().x, deck.getPosition().y+0.3, deck.getPosition().z})
+  end
+end
+
+function onPlayerTurnStart(player_color_start, player_color_previous)
+  if setup and player_color_start == "Red" then
+  	self.deal(1, "Red")
+    actions = gameManager.call("getAttributes", {color = "Red"}).action
+    if actions+3 > 5 then
+      redAction.setValue(5)
+    else
+      redAction.setValue(actions+3)
+      gameManager.call("setAttribute", {color = "Red", attribute = 'action', value = 5})
+    end
   end
 end

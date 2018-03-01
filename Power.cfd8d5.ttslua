@@ -1,14 +1,12 @@
+--Red Power--
+
 gameManager_GUID = 'ae7b3c'
 function onLoad(save_state)
   gameManager = getObjectFromGUID(gameManager_GUID)
 end
 
 function onCollisionEnter(collision_info)
-  -- collision_info table:
-  --   collision_object    Object
-  --   contact_points      Table     {Vector, ...}
-  --   relative_velocity   Vector
   if(gameManager) then
-    getObjectFromGUID(gameManager_GUID).call("setAttribute", {color = 'red', attribute = 'power', value = self.getValue()})
+    getObjectFromGUID(gameManager_GUID).call("setAttribute", {color = 'Red', attribute = 'power', value = self.getValue()})
   end
 end
