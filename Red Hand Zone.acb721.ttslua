@@ -4,6 +4,8 @@
 --{0.00, 0.00, 6.00}
 --{15.00, 0.54, 0.00}
 cardsInHand = {}
+
+  -- cardsInHand is the card_info table for the card and the specific card's GUID
   -- cardsInHand[CARDNAME] table:
   -- action        int
   -- power         int
@@ -12,7 +14,7 @@ cardsInHand = {}
   --               [TYPENAME]        bool
   -- control       table
   --               [CONTROLNAME]     bool
-  -- restrictions  table
+  -- obj_guid      int    --added by this script
 
 gameManager_GUID = 'ae7b3c'
 
@@ -59,11 +61,27 @@ function updatePlayableCards(attributes)
   att_cache = attributes
   for n, t in pairs(cardsInHand) do
     card_obj = getObjectFromGUID(t.obj_guid)
-    if (gameManager.call('checkIfPlayable', {name = n, attributes = attributes})).playable then
-      card_obj.highlightOn({r = 0.15, g = 1, b = 0.3})
+    if card_obj then
+      if (gameManager.call('checkIfPlayable', {name = n, attributes = attributes})).playable then
+        card_obj.highlightOn({r = 0.15, g = 1, b = 0.3})
+      else
+        card_obj.highlightOn({r = 1, g = 0, b = 0})
+      end
     else
-      card_obj.highlightOn({r = 1, g = 0, b = 0})
+      cardsInHand[n] = nil
     end
   end
   --print('-----')
+end
+
+
+function onObjectPickedUp(player_color, picked_up_object)
+  --print(cardsInHand[picked_up_object.getName()])
+  table = cardsInHand[picked_up_object.getName()]
+  if table and table.obj_guid == picked_up_object.guid then
+    --if cardsInHand[picked_up_object.getName()].obj_guid == picked_up_object.guid then
+    --end
+    --gameManager.call("playCard", {player_color = "Red", card = picked_up_object})
+    --print("kansas!")
+  end
 end

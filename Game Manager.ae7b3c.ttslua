@@ -16,7 +16,6 @@ CONTROL_MASK_SLOW = 4
 CONTROL_MASK_SILENCE = 2
 CONTROL_MASK_DISARM = 1
 
-cardData = {}
 playerAttributes = {Red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'acb721'},
                     Blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'f4df35'}}
 
@@ -24,7 +23,7 @@ redAction_GUID = '671922'
 redPower_GUID = 'cfd8d5'
 blueAction_GUID = 'd51b94'
 bluePower_GUID = 'e32e8b'
-
+cardData = {}
 Stack = {}
 -- Stack Table
 -- Uses a table as stack, use <table>:push(value) and <table>:pop()
@@ -92,10 +91,18 @@ function onLoad(save_state)
   bluePower = getObjectFromGUID(bluePower_GUID)
 end
 
+function onObjectPickedUp(player_color, picked_up_object)
+  if (picked_up_object.tag == "Card") then
+    if not(picked_up_object.getDescription() == '') then
+      updateCardData({card = picked_up_object})
+    end
+  end
+end
+
 function onObjectLeaveContainer(container, object)
   if (object.tag == "Card") then
     if not(object.getDescription() == '') then
-      updateCardData(object)
+      updateCardData({card = object})
     end
   end
 end
@@ -121,12 +128,11 @@ function setAttribute (attribute_info)
   end
 end
 
-function getAttributes (player)
 -- player table:
 -- color    string
+function getAttributes(player)
   return playerAttributes[player.color]
 end
-
 
 -- Action, Power, Range:
 -- 0..5   : 0..5,
@@ -140,8 +146,8 @@ end
 --
 -- Control:
 -- octal: Slow, Silence, Disarm
-
-function updateCardData(card)
+function updateCardData(info)
+  card = info.card
   description = card.getDescription()
   if (not cardData[card.getName()]) then
 
@@ -235,100 +241,106 @@ function updateCardData(card)
                                 range = range,
                                 types = types,
                                 control = control}
+end
+
+function getCardStats(info_table)
+--info_table table:
+--name    string
+  if cardData[info_table.name] then
+    return cardData[info_table.name]
   end
 
-  function getCardStats(card)
-    return cardData[card.name]
+end
+
+function checkIfPlayable(play_info)
+  -- play_info table:
+  -- name         string
+  -- attributes   table:
+  --              [ATTRIBUTENAME]  int
+  --playability table:
+  --playable      bool
+  --attributes    table:
+  --              [ATTRIBUTENAME]  bool
+  playability = {playable = false, restricted = {action = false, power = false, slow = false, silence = false, disarm = false}}
+  name = play_info.name
+  card_stats = getCardStats({name = name})
+  attributes = play_info.attributes
+
+  if (attributes.action + card_stats.action < 0 ) then
+    playability.restricted['action'] = true
+  end
+  if (attributes.power + card_stats.power < 0 ) then
+    playability.restricted['power'] = true
   end
 
-  function checkIfPlayable(play_info)
-    -- play_info table:
-    -- name         string
-    -- attributes   table:
-    --              [ATTRIBUTENAME]  int
-    --playability table:
-    --playable      bool
-    --attributes    table:
-    --              [ATTRIBUTENAME]  bool
-    playability = {playable = false, restricted = {action = false, power = false, slow = false, silence = false, disarm = false}}
-    name = play_info.name
-    card_stats = getCardStats({name = name})
-    attributes = play_info.attributes
+  for control_type, affected in pairs(card_stats.control) do
+      if (attributes[control_type] > 0 and affected) then
+        playability.restricted[control_type] = true
+      end
+  end
+  playability.playable = not (playability.restricted.action or
+                            playability.restricted.power or
+                            playability.restricted.slow or
+                            playability.restricted.silence or
+                            playability.restricted.disarm)
+  return playability
+end
 
-    if (attributes.action + card_stats.action < 0 ) then
-      playability.restricted['action'] = true
-    end
-    if (attributes.power + card_stats.power < 0 ) then
-      playability.restricted['power'] = true
-    end
-
-    for control_type, affected in pairs(card_stats.control) do
-        if (attributes[control_type] > 0 and affected) then
-          playability.restricted[control_type] = true
-        end
-    end
-    playability.playable = not (playability.restricted.action or
-                              playability.restricted.power or
-                              playability.restricted.slow or
-                              playability.restricted.silence or
-                              playability.restricted.disarm)
-    return playability
+function playCard (card_info)
+  -- card_info table:
+  -- player_color   string
+  -- card           object
+  card = card_info.card
+  player_color = card_info.player_color
+  name = card.getName()
+  attributes = getAttributes({color = player_color})
+  if player_color == 'Red' then
+    actionDie = redAction
+    powerDie = redPower
+  else
+    actionDie = blueAction
+    powerDie = bluePower
   end
 
-  function playCard (card_info)
-    -- card_info table:
-    -- player_color   string
-    -- card           object
-    card = card_info.card
-    player_color = card_info.player_color
-    name = card.getName()
+  playability = checkIfPlayable({name = name, attributes = attributes})
+  card_stats = getCardStats({name = name})
+
+  actionDif = attributes.action + card_stats.action
+  powerDif = attributes.power + card_stats.power
+
+  if playability.playable then
     print(player_color .. ' played ' .. name)
-    attributes = getAttributes({color = player_color})
-    if player_color == 'Red' then
-      actionDie = redAction
-      powerDie = redPower
-    else
-      actionDie = blueAction
-      powerDie = bluePower
+    if (card_stats.action < 0) then
+      if (actionDif > 0) then
+        actionDie.setValue(actionDie.getValue() + card_stats.action)
+      elseif (actionDif == 0) then
+        actionDie.setValue(6)
+      end
+    end
+    if (card_stats.power < 0) then
+      if (powerDif > 0) then
+        powerDie.setValue(powerDie.getValue() + card_stats.power)
+      elseif (powerDif == 0) then
+        powerDie.setValue(6)
+      end
     end
 
-    playability = checkIfPlayable({name = name, attributes = attributes})
-    card_stats = getCardStats({name = name})
+    for i,v in pairs(stack:getEntries()) do
+      v.card.setPositionSmooth({v.card.getPosition().x - 1.25, 5.00, 0.00}, false, false)
+      --v.card.flip()
+    end
 
-    actionDif = attributes.action + card_stats.action
-    powerDif = attributes.power + card_stats.power
-
-    if playability.playable then
-      if (card_stats.action < 0) then
-        if (actionDif > 0) then
-          actionDie.setValue(actionDie.getValue() + card_stats.action)
-        elseif (actionDif == 0) then
-          actionDie.setValue(6)
-        end
-      end
-      if (card_stats.power < 0) then
-        if (powerDif > 0) then
-          powerDie.setValue(powerDie.getValue() + card_stats.power)
-        elseif (powerDif == 0) then
-          powerDie.setValue(6)
-        end
-      end
-
-      for i,v in pairs(stack:getEntries()) do
-        v.card.setPositionSmooth({v.card.getPosition().x - 1.25, 5.00, 0.00}, false, false)
-        --v.card.flip()
-      end
-
-      card.setPositionSmooth({(stackSize * 1.25), 5.00, 0.00}, false, false)
-      if stack:top() then
-        stack:top().card.highlightOff()
-      end
-      stack:push({card = card, player_color = player_color})
-      stack:top().card.highlightOn({1,1,0})
-      stack:top().card.setLock(true)
-      stackSize = stackSize + 1.00
-      --card.setPositionSmooth({, 5.00, 0.00}, false, false)
-    else
+    card.setPositionSmooth({(stackSize * 1.25), 5.00, 0.00}, false, false)
+    if stack:top() then
+      stack:top().card.highlightOff()
+    end
+    stack:push({card = card, player_color = player_color})
+    stack:top().card.highlightOn({1,1,0})
+    stack:top().card.setLock(true)
+    stackSize = stackSize + 1.00
+    --card.setPositionSmooth({, 5.00, 0.00}, false, false)
+  else
+    if getSeatedPlayers().player_color then
       if playability.restricted.action  then
         printToColor(name.." can't be played: not enough"..'[ed7905] actions [-]', player_color, {r=1,g=1,b=1})
       end
@@ -346,81 +358,97 @@ function updateCardData(card)
       end
     end
   end
+end
 
-  function resolveCard()
-    stack_entry = stack:pop()
-    if (stack_entry ~= nil) then
-      card = stack_entry.card
-      player_color = stack_entry.player_color
-      attributes = getAttributes({color = player_color})
-      name = card.getName()
-      print(player_color .. ' resolved ' .. name)
-      if player_color == 'Red' then
-        discardZone = {9, 1.5, -12.2}
-        actionDie = redAction
-        powerDie = redPower
-      else
-        discardZone = {-9, 1.5, 12.2}
-        actionDie = blueAction
-        powerDie = bluePower
-      end
-      playability = checkIfPlayable({name = name, attributes = attributes})
-      card_stats = getCardStats({name = name})
+function resolveCard()
+  stack_entry = stack:pop()
+  if (stack_entry ~= nil) then
+    card = stack_entry.card
+    player_color = stack_entry.player_color
+    attributes = getAttributes({color = player_color})
+    name = card.getName()
+    print(player_color .. ' resolved ' .. name)
+    if player_color == 'Red' then
+      discardZone = {9, 1.5, -12.2}
+      actionDie = redAction
+      powerDie = redPower
+    else
+      discardZone = {-9, 1.5, 12.2}
+      actionDie = blueAction
+      powerDie = bluePower
+    end
+    playability = checkIfPlayable({name = name, attributes = attributes})
+    card_stats = getCardStats({name = name})
 
-      if (playability.restricted.slow or playability.restricted.silence or playability.restricted.disarm) then
-        if playability.restricted.slow  then
-            printToColor(name.." metacountered: affected by"..'[49ac2d] slow [-]', player_color, {r=1,g=1,b=1})
-        end
-        if playability.restricted.silence  then
-            printToColor(name.." metacountered: affected by"..'[248eab] silence [-]', player_color, {r=1,g=1,b=1})
-        end
-        if playability.restricted.disarm  then
-            printToColor(name.." metacountered: affected by"..'[db2325] disarm [-]', player_color, {r=1,g=1,b=1})
-        end
-        actionDif = attributes.action - card_stats.action
-        powerDif = attributes.power - card_stats.power
-        if (card_stats.action < 0) then
-          if (actionDif <= 5) then
-            actionDie.setValue(actionDif)
-          else
-            actionDie.setValue(5)
-          end
-        end
-        if (card_stats.power < 0) then
-          if (powerDif <= 5) then
-            powerDie.setValue(powerDif)
-          else
-            powerDie.setValue(5)
-          end
-        end
-      else
-        actionDif = attributes.action + card_stats.action
-        powerDif = attributes.power + card_stats.power
-        if (card_stats.action > 0) then
-          if (actionDif <= 5) then
-            actionDie.setValue(actionDif)
-          else
-            actionDie.setValue(5)
-          end
-        end
-        if (card_stats.power > 0) then
-          if (powerDif <= 5) then
-            powerDie.setValue(powerDif)
-          else
-            powerDie.setValue(5)
-          end
+    if (playability.restricted.slow or playability.restricted.silence or playability.restricted.disarm) then
+      if playability.restricted.slow  then
+          printToColor(name.." metacountered: affected by"..'[49ac2d] slow [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.silence  then
+          printToColor(name.." metacountered: affected by"..'[248eab] silence [-]', player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.disarm  then
+          printToColor(name.." metacountered: affected by"..'[db2325] disarm [-]', player_color, {r=1,g=1,b=1})
+      end
+      actionDif = attributes.action - card_stats.action
+      powerDif = attributes.power - card_stats.power
+      if (card_stats.action < 0) then
+        if (actionDif <= 5) then
+          actionDie.setValue(actionDif)
+        else
+          actionDie.setValue(5)
         end
       end
-      card.highlightOff()
-      card.setLock(false)
-      card.setPositionSmooth(discardZone, false, false)
-      for i,v in pairs(stack:getEntries()) do
-        v.card.setPositionSmooth({v.card.getPosition().x + 1.25, 5.00, 0.00}, false, false)
+      if (card_stats.power < 0) then
+        if (powerDif <= 5) then
+          powerDie.setValue(powerDif)
+        else
+          powerDie.setValue(5)
+        end
       end
-      if(stack:top()) then
-        stack:top().card.highlightOn({1,1,0})
+    else
+      actionDif = attributes.action + card_stats.action
+      powerDif = attributes.power + card_stats.power
+      if (card_stats.action > 0) then
+        if (actionDif <= 5) then
+          actionDie.setValue(actionDif)
+        else
+          actionDie.setValue(5)
+        end
       end
-      stackSize = stackSize - 1.00
+      if (card_stats.power > 0) then
+        if (powerDif <= 5) then
+          powerDie.setValue(powerDif)
+        else
+          powerDie.setValue(5)
+        end
+      end
+    end
+    card.highlightOff()
+    card.setLock(false)
+    card.setPositionSmooth(discardZone, false, false)
+    for i,v in pairs(stack:getEntries()) do
+      v.card.setPositionSmooth({v.card.getPosition().x + 1.25, 5.00, 0.00}, false, false)
+    end
+    if(stack:top()) then
+      stack:top().card.highlightOn({1,1,0})
+    end
+    stackSize = stackSize - 1.00
+  end
+end
+
+--info_table:
+--object    object
+--zone      zone
+function inZone(info_table)
+  object = info_table.object
+  zone = info_table.zone
+  for i,v in ipairs(zone.getObjects()) do
+    if (v == object) then
+      return true
     end
   end
+  return false
+end
+
 end

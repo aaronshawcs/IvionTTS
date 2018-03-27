@@ -55,9 +55,10 @@ function updateCardCount()
     if cardcount > 0 then
       counter.TextTool.setValue(tostring(cardcount))
     else
-      counter.TextTool.setValue("Exhausted!")
+      counter.destruct()
+      --counter.TextTool.setValue("Exhausted!")
     end
-    counter.setPosition({deck.getPosition().x, deck.getPosition().y + 0.3, deck.getPosition().z})
+    counter.setPosition({deck.getPosition().x, deck.getPosition().y * 1.30, deck.getPosition().z})
   end
 end
 

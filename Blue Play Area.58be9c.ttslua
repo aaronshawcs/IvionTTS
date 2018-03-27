@@ -12,10 +12,13 @@ function onLoad(save_state)
   self.createButton(button_parameters)
 end
 
-function onObjectEnterScriptingZone(zone, object)
-  if zone == self then
-    if (object) and (object.tag=="Card") and (object.held_by_color) then
-      gameManager.call("playCard", {player_color = object.held_by_color, card = object})
+function onObjectDropped(player_color, dropped_object)
+  if(dropped_object.tag == "Card") then
+    name = dropped_object.getName()
+    card_info = gameManager.call("getCardStats", {name = name})
+    if (gameManager.call("inZone", {object = dropped_object, zone = self})) then
+      dropped_object.setRotationSmooth({0.00, 0, 0.00}, false, false)
+      gameManager.call("playCard", {player_color = "Blue", card = dropped_object})
     end
   end
 end
