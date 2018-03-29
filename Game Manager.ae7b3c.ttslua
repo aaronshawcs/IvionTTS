@@ -2,7 +2,6 @@
 -- -121.62 is max distance from table
 
 getmetatable('').__call = string.sub
-
 TYPE_MASK_ABILITY = 128
 TYPE_MASK_ATTACK = 64
 TYPE_MASK_AURA = 32
@@ -16,8 +15,8 @@ CONTROL_MASK_SLOW = 4
 CONTROL_MASK_SILENCE = 2
 CONTROL_MASK_DISARM = 1
 
-playerAttributes = {Red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'acb721'},
-                    Blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'f4df35'}}
+playerAttributes = {Red = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'acb721', ultimate_GUID = '36fe43', trait1_GUID = '65d095', trait2_GUID = 'ed9e05'},
+                    Blue = {action = 0, power = 0, slow = 0, silence = 0, disarm = 0, hand_GUID = 'f4df35', ultimate_GUID = '487a1a', trait1_GUID = '85b766', trait2_GUID = '019cd0'}}
 
 redAction_GUID = '671922'
 redPower_GUID = 'cfd8d5'
@@ -81,8 +80,9 @@ function Stack:Create()
   return t
 end
 -- CHILLCODE™
-
 function onLoad(save_state)
+
+  currentPlayer = "Blue"
   stack = Stack:Create()
   stackSize = 0.00
   redAction = getObjectFromGUID(redAction_GUID)
@@ -107,7 +107,7 @@ function onObjectLeaveContainer(container, object)
   end
 end
 
-function setAttribute (attribute_info)
+function setAttribute(attribute_info)
   -- attribute_info table:
   --  color     string
   --  attribute string
@@ -125,6 +125,9 @@ function setAttribute (attribute_info)
 
   if not (value > 0 and previousValue > 0 and (attribute == 'slow' or attribute == 'silence' or attribute == 'disarm')) then
     getObjectFromGUID(playerAttributes[color]['hand_GUID']).call('updatePlayableCards', (playerAttributes[color]))
+    getObjectFromGUID(playerAttributes[color]['ultimate_GUID']).call('updatePlayability', (playerAttributes[color]))
+    getObjectFromGUID(playerAttributes[color]['trait1_GUID']).call('updatePlayability', (playerAttributes[color]))
+    getObjectFromGUID(playerAttributes[color]['trait2_GUID']).call('updatePlayability', (playerAttributes[color]))
   end
 end
 
@@ -212,7 +215,7 @@ function updateCardData(info)
     end
     if typemask >= TYPE_MASK_PASSIVE then
       typemask = typemask - TYPE_MASK_PASSIVE
-      types.passive = true
+      types.trait = true
     end
     if typemask >= TYPE_MASK_ULTIMATE then
       typemask = typemask - TYPE_MASK_ULTIMATE
@@ -241,7 +244,9 @@ function updateCardData(info)
                                 range = range,
                                 types = types,
                                 control = control}
+  end
 end
+
 
 function getCardStats(info_table)
 --info_table table:
@@ -254,18 +259,27 @@ end
 
 function checkIfPlayable(play_info)
   -- play_info table:
-  -- name         string
+  -- name         string  --the name of the card
   -- attributes   table:
   --              [ATTRIBUTENAME]  int
+  --  color       string
   --playability table:
   --playable      bool
   --attributes    table:
   --              [ATTRIBUTENAME]  bool
-  playability = {playable = false, restricted = {action = false, power = false, slow = false, silence = false, disarm = false}}
+  -- card_stats table:
+  -- action        int
+  -- power         int
+  -- range         int
+  -- types         table:
+  --               [TYPENAME]        bool
+  -- control       table
+  --               [CONTROLNAME]     bool
+  playability = {playable = false, restricted = {action = false, power = false, slow = false, silence = false, disarm = false, instant = false, feat = false}}
   name = play_info.name
   card_stats = getCardStats({name = name})
   attributes = play_info.attributes
-
+  color = play_info.color
   if (attributes.action + card_stats.action < 0 ) then
     playability.restricted['action'] = true
   end
@@ -278,20 +292,41 @@ function checkIfPlayable(play_info)
         playability.restricted[control_type] = true
       end
   end
+  if (not card_stats.types.instant) and not (currentPlayer == color) then
+    playability.restricted['instant'] = true
+  end
+
+
+  local feat = nil
+  if(card_stats.types.ultimate) then
+    feat = getObjectFromGUID(attributes.ultimate_GUID)
+  elseif(card_stats.types.trait) then
+    if(name == getObjectFromGUID(attributes.trait1_GUID).call("getTraitName")) then
+      feat = getObjectFromGUID(attributes.trait1_GUID)
+    elseif(name == getObjectFromGUID(attributes.trait2_GUID).call("getTraitName")) then
+      feat = getObjectFromGUID(attributes.trait2_GUID)
+    end
+  end
+  if feat and feat.call('getPlayed') then
+    playability.restricted['feat'] = true
+  end
   playability.playable = not (playability.restricted.action or
                             playability.restricted.power or
                             playability.restricted.slow or
                             playability.restricted.silence or
-                            playability.restricted.disarm)
+                            playability.restricted.disarm or
+                            playability.restricted.instant or
+                            playability.restricted.feat)
+  --print(playability.playable)
   return playability
 end
 
-function playCard (card_info)
-  -- card_info table:
+function playCard (info_table)
+  -- info_table table:
   -- player_color   string
   -- card           object
-  card = card_info.card
-  player_color = card_info.player_color
+  card = info_table.card
+  player_color = info_table.player_color
   name = card.getName()
   attributes = getAttributes({color = player_color})
   if player_color == 'Red' then
@@ -302,7 +337,7 @@ function playCard (card_info)
     powerDie = bluePower
   end
 
-  playability = checkIfPlayable({name = name, attributes = attributes})
+  playability = checkIfPlayable({name = name, attributes = attributes, color = player_color})
   card_stats = getCardStats({name = name})
 
   actionDif = attributes.action + card_stats.action
@@ -310,6 +345,20 @@ function playCard (card_info)
 
   if playability.playable then
     print(player_color .. ' played ' .. name)
+
+
+    local feat = nil
+    if(card_stats.types.ultimate) then
+      feat = getObjectFromGUID(attributes.ultimate_GUID)
+      feat.call('playedThisTurn')
+    elseif(card_stats.types.trait) then
+      if(name == getObjectFromGUID(attributes.trait1_GUID).call("getTraitName")) then
+        feat = getObjectFromGUID(attributes.trait1_GUID)
+      elseif(name == getObjectFromGUID(attributes.trait2_GUID).call("getTraitName")) then
+        feat = getObjectFromGUID(attributes.trait2_GUID)
+      end
+      feat.call('playedThisTurn')
+    end
     if (card_stats.action < 0) then
       if (actionDif > 0) then
         actionDie.setValue(actionDie.getValue() + card_stats.action)
@@ -340,7 +389,7 @@ function playCard (card_info)
     stackSize = stackSize + 1.00
     --card.setPositionSmooth({, 5.00, 0.00}, false, false)
   else
-    if getSeatedPlayers().player_color then
+    --if getSeatedPlayers()[player_color] then
       if playability.restricted.action  then
         printToColor(name.." can't be played: not enough"..'[ed7905] actions [-]', player_color, {r=1,g=1,b=1})
       end
@@ -356,11 +405,18 @@ function playCard (card_info)
       if playability.restricted.disarm  then
           printToColor(name.." can't be played: affected by"..'[db2325] disarm [-]', player_color, {r=1,g=1,b=1})
       end
-    end
+      if playability.restricted.instant  then
+          printToColor(name.." can't be played: not an instant", player_color, {r=1,g=1,b=1})
+      end
+      if playability.restricted.feat  then
+          printToColor(name.." can't be played: already played this turn", player_color, {r=1,g=1,b=1})
+      end
+    --end
   end
 end
 
 function resolveCard()
+  local feat = nil
   stack_entry = stack:pop()
   if (stack_entry ~= nil) then
     card = stack_entry.card
@@ -368,17 +424,28 @@ function resolveCard()
     attributes = getAttributes({color = player_color})
     name = card.getName()
     print(player_color .. ' resolved ' .. name)
+    playability = checkIfPlayable({name = name, attributes = attributes, player_color})
+    card_stats = getCardStats({name = name})
     if player_color == 'Red' then
-      discardZone = {9, 1.5, -12.2}
       actionDie = redAction
       powerDie = redPower
+      destinationZone = {9, 1.5, -12.2}
     else
-      discardZone = {-9, 1.5, 12.2}
       actionDie = blueAction
       powerDie = bluePower
+      destinationZone = {-9, 1.5, 12.2}
     end
-    playability = checkIfPlayable({name = name, attributes = attributes})
-    card_stats = getCardStats({name = name})
+    if(card_stats.types.ultimate) then
+      feat = getObjectFromGUID(attributes.ultimate_GUID)
+      destinationZone = (feat.call("getDestination"))
+    elseif (card_stats.types.trait) then
+      if(name == getObjectFromGUID(attributes.trait1_GUID).call("getTraitName")) then
+        feat = getObjectFromGUID(attributes.trait1_GUID)
+      elseif(name == getObjectFromGUID(attributes.trait2_GUID).call("getTraitName")) then
+        feat = getObjectFromGUID(attributes.trait2_GUID)
+      end
+      destinationZone = (feat.call("getDestination"))
+    end
 
     if (playability.restricted.slow or playability.restricted.silence or playability.restricted.disarm) then
       if playability.restricted.slow  then
@@ -426,7 +493,11 @@ function resolveCard()
     end
     card.highlightOff()
     card.setLock(false)
-    card.setPositionSmooth(discardZone, false, false)
+    card.setPositionSmooth(destinationZone, false, false)
+    if(card_stats.types.ultimate or card_stats.types.trait) then
+      feat.call('offStack')
+      feat.call('updatePlayability', attributes)
+    end
     for i,v in pairs(stack:getEntries()) do
       v.card.setPositionSmooth({v.card.getPosition().x + 1.25, 5.00, 0.00}, false, false)
     end
@@ -451,4 +522,10 @@ function inZone(info_table)
   return false
 end
 
+
+function onPlayerTurnStart(player_color_start, player_color_previous)
+  currentPlayer = player_color_start
+  getObjectFromGUID(playerAttributes[player_color_start]['hand_GUID']).call('updatePlayableCards', (playerAttributes[player_color_start]))
+  getObjectFromGUID(playerAttributes[player_color_previous]['hand_GUID']).call('updatePlayableCards', (playerAttributes[player_color_previous]))
 end
+--]]

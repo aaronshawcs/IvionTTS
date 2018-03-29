@@ -10,3 +10,15 @@ function onCollisionEnter(collision_info)
     getObjectFromGUID(gameManager_GUID).call("setAttribute", {color = 'Red', attribute = 'action', value = self.getValue()})
   end
 end
+
+function onPlayerTurnStart(player_color_start, player_color_previous)
+  if player_color_start == "Red" then
+    actions = gameManager.call("getAttributes", {color = "Red"}).action
+    if actions+3 > 5 then
+      self.setValue(5)
+    else
+      self.setValue(actions+3)
+      --gameManager.call("setAttribute", {color = "Red", attribute = 'action', value = 5})
+    end
+  end
+end

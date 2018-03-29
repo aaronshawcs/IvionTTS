@@ -4,12 +4,12 @@ reservedUlt = nil
 --deckBuilder_GUID = 'fa7170'
 --placeDeckHereText_GUID = "4357db"
 gameManager_GUID = 'ae7b3c'
-placeHereText_GUID = "ded516"
+placeHereText_GUID = "9f802a"
 function onLoad(save_state)
   placeHereText = getObjectFromGUID(placeHereText_GUID)
   gameManager = getObjectFromGUID(gameManager_GUID)
   deckBuilder = getObjectFromGUID(deckBuilder_GUID)
-  ultimate = nild
+  ultimate = nil
   played = false
   playing = false --is the ult currently on the stack?
   --placeDeckHereText = getObjectFromGUID(placeDeckHereText_GUID)
@@ -36,8 +36,8 @@ function onObjectEnterScriptingZone(zone, object)
             button_parameters.click_function = 'assignUlt'
             button_parameters.label = "Assign\nUltimate"
             button_parameters.function_owner = self
-            button_parameters.position = {2.00, -0.45, -0.0}
-            button_parameters.rotation = {00.00, 180.00, 0.00}
+            button_parameters.position = {-2.00, -0.45, -0.0}
+            button_parameters.rotation = {00.00, 0.00, 0.00}
             button_parameters.font_size = 6000
             button_parameters.width = 4000
             button_parameters.height = 2000
@@ -64,8 +64,9 @@ end
 function assignUlt()
   ultimate = reservedUlt
   self.clearButtons()
-  updatePlayability(gameManager.call('getAttributes', {color = "Red"}))
+  updatePlayability(gameManager.call('getAttributes', {color = "Blue"}))
   placeHereText.destruct()
+  --placeDeckHereText.destruct()
   --reservedUlt.setRotation({reservedDeck.getRotation().x, reservedDeck.getRotation().y, 180})
   --deckBuilder.call("makeDeck", {reservedDeck.guid, self.guid})
 end
@@ -86,7 +87,7 @@ end
 function updatePlayability(attributes)
   if ultimate then
     if not playing then
-      if not played and gameManager.call('checkIfPlayable', {name = ultimate.getName(), attributes = attributes, color = "Red"}).playable then
+      if not played and gameManager.call('checkIfPlayable', {name = ultimate.getName(), attributes = attributes, color = "Blue"}).playable then
         ultimate.highlightOn({r = 0.15, g = 1, b = 0.3})
       else
         ultimate.highlightOn({r = 1, g = 0, b = 0})
@@ -95,13 +96,10 @@ function updatePlayability(attributes)
   end
 end
 
-function getDestination()
-  return self.getPosition()
-end
 
 function onPlayerTurnStart(player_color_start, player_color_previous)
-  if player_color_start == "Red" then
+  if player_color_start == "Blue" then
     played = false
   end
-  updatePlayability(gameManager.call('getAttributes', {color = "Red"}))
+  updatePlayability(gameManager.call('getAttributes', {color = "Blue"}))
 end

@@ -47,6 +47,7 @@ function updateCardCount()
         rotation = {90.00, 0.00, 0.00}})
       counter.TextTool.setValue(tostring(cardcount-2))
       deckinfo['counter'] = counter
+      self.deal(5, "Red")
       setup = true
       zone.destruct()
     end
@@ -64,12 +65,12 @@ end
 function onPlayerTurnStart(player_color_start, player_color_previous)
   if setup and player_color_start == "Red" then
   	self.deal(1, "Red")
-    actions = gameManager.call("getAttributes", {color = "Red"}).action
+    --[[actions = gameManager.call("getAttributes", {color = "Red"}).action
     if actions+3 > 5 then
       redAction.setValue(5)
     else
       redAction.setValue(actions+3)
       gameManager.call("setAttribute", {color = "Red", attribute = 'action', value = 5})
-    end
+    end]]
   end
 end

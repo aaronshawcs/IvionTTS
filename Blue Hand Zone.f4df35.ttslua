@@ -6,7 +6,7 @@
 cardsInHand = {}
 
   -- cardsInHand is the card_info table for the card and the specific card's GUID
-  -- cardsInHand[CARDNAME] table:
+  -- cardsInHand[CARDGUID] table:
   -- action        int
   -- power         int
   -- range         int
@@ -14,7 +14,6 @@ cardsInHand = {}
   --               [TYPENAME]        bool
   -- control       table
   --               [CONTROLNAME]     bool
-  -- obj_guid      int    --added by this script
 
 gameManager_GUID = 'ae7b3c'
 
@@ -29,9 +28,8 @@ function onObjectEnterScriptingZone(zone, object)
     if (object) and (object.tag=="Card") then
       name = object.getName()
       card_info = gameManager.call("getCardStats", {name = name})
-      card_info.obj_guid = object.getGUID()
-      cardsInHand[name] = card_info
-      if (gameManager.call('checkIfPlayable', {name = name, attributes = att_cache})).playable then
+      cardsInHand[object.guid] = card_info
+      if (gameManager.call('checkIfPlayable', {name = name, attributes = att_cache, color = 'Blue'})).playable then
         object.highlightOn({r = 0.15, g = 1, b = 0.3})
       else
         object.highlightOn({r = 1, g = 0, b = 0})
@@ -45,7 +43,7 @@ end
 function onObjectLeaveScriptingZone(zone, object)
   if zone == self then
     if (object) and (object.tag == 'Card') then
-      cardsInHand[object.getName()] = nil
+      cardsInHand[object.guid] = nil
       object.highlightOff()
       --for i, v in ipairs(cardsInHand) do
       --  if  object == v then
@@ -59,16 +57,16 @@ end
 
 function updatePlayableCards(attributes)
   att_cache = attributes
-  for n, t in pairs(cardsInHand) do
-    card_obj = getObjectFromGUID(t.obj_guid)
+  for guid, table in pairs(cardsInHand) do
+    card_obj = getObjectFromGUID(guid)
     if card_obj then
-      if (gameManager.call('checkIfPlayable', {name = n, attributes = attributes})).playable then
+      if (gameManager.call('checkIfPlayable', {name = card_obj.getName(), attributes = attributes, color = 'Blue'})).playable then
         card_obj.highlightOn({r = 0.15, g = 1, b = 0.3})
       else
         card_obj.highlightOn({r = 1, g = 0, b = 0})
       end
     else
-      cardsInHand[n] = nil
+      cardsInHand[guid] = nil
     end
   end
   --print('-----')
